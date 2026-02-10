@@ -62,7 +62,8 @@ const App: React.FC = () => {
         setAllStudents(studentsData);
       } catch (err: any) {
         console.error("Erro ao carregar dados iniciais:", err);
-        setError("Não foi possível carregar os dados. Verifique sua conexão ou tente novamente.");
+        console.error("Erro ao carregar dados iniciais:", err);
+        setError(`Erro técnico: ${err.message || JSON.stringify(err)}`);
       } finally {
         setIsLoading(false);
       }
