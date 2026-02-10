@@ -65,8 +65,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, allTeachers }) => {
           </button>
         </div>
 
-        <p className="mt-12 text-white/30 text-[10px] font-black uppercase tracking-[0.3em]">
-          Gestão de Frequência 2025 <span className="opacity-50">(v2.2)</span>
+        <p className="mt-12 text-white/50 text-[10px] font-black uppercase tracking-[0.3em]">
+          Gestão de Frequência 2025 <span className="text-accent bg-black/20 px-2 py-1 rounded">(v2.6 - DIAGNÓSTICO)</span>
         </p>
       </div>
     </div>
