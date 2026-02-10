@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurador de Dados - App Professor</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .card {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            background: #f9f9f9;
+        }
+
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            margin-right: 10px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: #4338ca;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🛠️ Restaurador de Dados (Via Celular)</h1>
+    <p>Use esta página para restaurar os dados do sistema diretamente do seu celular.</p>
+
+    <div class="card">
+        <h3>1. Status da Conexão</h3>
+        <div id="conn-status">Testando...</div>
+    </div>
+
+    <div class="card">
+        <button id="btn-restore" onclick="startRestoration()" disabled>INICIAR RESTAURAÇÃO AGORA</button>
+    </div>
+
+    <div id="log">Aguardando comando...</div>
+
+    <script>
+        // --- CONFIGURAÇÃO ---
+        const supabaseUrl = 'https://yglwswpgrqfldvpbqxcl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbHdzd3BncnFmbGR2cGJxeGNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTU2Mjg0MDQsImV4cCI6MjAzMTIwNDQwNH0.5N_u6Y-0iG2s1s024s2yNCe-iZ0rnF3xKq6H3kTl3rU';
+
+        let supabase;
+
+        const logDiv = document.getElementById('log');
+
+        function log(msg, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            let color = '#0f0';
+            if (type === 'error') color = '#f87171';
+            if (type === 'warn') color = '#fbbf24';
+            logDiv.innerHTML += `<div style="color:${color}">[${time}] ${msg}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // --- DADOS RECUPERADOS (CONSTANTS.TS) ---
+        const TEACHERS = [
+            { id: 'assuncao', name: 'Assunção', avatar: 'https://ui-avatars.com/api/?name=Assuncao&background=random' },
+            { id: 'carmem', name: 'Carmem', avatar: 'https://ui-avatars.com/api/?name=Carmem&background=random' },
+            { id: 'daniel', name: 'Daniel', avatar: 'https://ui-avatars.com/api/?name=Daniel&background=random' },
+            { id: 'denilson', name: 'Denilson', avatar: 'https://ui-avatars.com/api/?name=Denilson&background=random' },
+            { id: 'ednardo', name: 'Ednardo', avatar: 'https://ui-avatars.com/api/?name=Ednardo&background=random' },
+            { id: 'eunice', name: 'Eunice', avatar: 'https://ui-avatars.com/api/?name=Eunice&background=random' },
+            { id: 'francineuda', name: 'Francineuda', avatar: 'https://ui-avatars.com/api/?name=Francineuda&background=random' },
+            { id: 'francisca', name: 'Francisca', avatar: 'https://ui-avatars.com/api/?name=Francisca&background=random' },
+            { id: 'helane', name: 'Helane', avatar: 'https://ui-avatars.com/api/?name=Helane&background=random' },
+            { id: 'jandira', name: 'Jandira', avatar: 'https://ui-avatars.com/api/?name=Jandira&background=random' },
+            { id: 'joanilson', name: 'Joanilson', avatar: 'https://ui-avatars.com/api/?name=Joanilson&background=random' },
+            { id: 'jorge', name: 'Jorge', avatar: 'https://ui-avatars.com/api/?name=Jorge&background=random' },
+            { id: 'lindelvania', name: 'Lindelvania', avatar: 'https://ui-avatars.com/api/?name=Lindelvania&background=random' },
+            { id: 'luciano', name: 'Luciano', avatar: 'https://ui-avatars.com/api/?name=Luciano&background=random' },
+            { id: 'marcos', name: 'Marcos', avatar: 'https://ui-avatars.com/api/?name=Marcos&background=random' },
+            { id: 'mizael', name: 'Mizael', avatar: 'https://ui-avatars.com/api/?name=Mizael&background=random' },
+            { id: 'paulo', name: 'Paulo', avatar: 'https://ui-avatars.com/api/?name=Paulo&background=random' },
+            { id: 'wesley', name: 'Wesley', avatar: 'https://ui-avatars.com/api/?name=Wesley&background=random' },
+            { id: 'wilsilene', name: 'Wilsilene (Leninha)', avatar: 'https://ui-avatars.com/api/?name=Wilsilene&background=random' },
+            { id: 'wilson', name: 'Wilson', avatar: 'https://ui-avatars.com/api/?name=Wilson&background=random' },
+        ];
+
+        const TEACHER_DISCIPLINES = {
+            'assuncao': [{ id: 'geo', name: 'Geografia', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D', 'VII ETAPA'] }],
+            'carmem': [{ id: 'ing', name: 'Inglês', classes: ['MÓDULO II-A', 'MÓDULO II-B'] }],
+            'daniel': [{ id: 'soc', name: 'Sociologia', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
+            'denilson': [{ id: 'so', name: 'Sistemas Operacionais', classes: ['MÓDULO II-A', 'MÓDULO II-B'] }, { id: 'arq', name: 'Arquitetura e Manutenção', classes: ['MÓDULO II-A', 'MÓDULO II-B'] }],
+            'ednardo': [{ id: 'fis', name: 'Física', classes: ['VII ETAPA'] }, { id: 'eletiva', name: 'Eletiva Orientada', classes: ['VII ETAPA'] }],
+            'eunice': [{ id: 'port', name: 'Língua Portuguesa', classes: ['VII ETAPA'] }],
+            'francineuda': [{ id: 'port', name: 'Língua Portuguesa', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
+            'francisca': [{ id: 'hist', name: 'História', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D', 'VII ETAPA'] }],
+            'helane': [{ id: 'bio', name: 'Biologia', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
+            'jandira': [{ id: 'edfis', name: 'Educação Física', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'VII ETAPA'] }],
+            'joanilson': [{ id: 'arte', name: 'Arte', classes: ['VII ETAPA'] }, { id: 'fil', name: 'Filosofia', classes: ['VII ETAPA'] }, { id: 'pv', name: 'Projeto de Vida', classes: ['VII ETAPA'] }, { id: 'soc', name: 'Sociologia', classes: ['VII ETAPA'] }],
+            'jorge': [{ id: 'fis', name: 'Física', classes: ['MÓDULO II-A', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
+            'lindelvania': [{ id: 'esp', name: 'Espanhol', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }, { id: 'ing', name: 'Inglês', classes: ['VII ETAPA'] }],
+            'luciano': [{ id: 'progweb', name: 'Programação para Web', classes: ['MÓDULO IV-A', 'MÓDULO IV-B'] }, { id: 'redes', name: 'Redes de Computadores', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
+            'marcos': [{ id: 'progweb', name: 'Programação para Web', classes: ['MÓDULO IV-C', 'MÓDULO IV-D'] }, { id: 'pai', name: 'Proj. Aprendizagem Interdisciplinar', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
+            'mizael': [{ id: 'bd', name: 'Banco de Dados', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }, { id: 'ed', name: 'Estrutura de Dados', classes: ['MÓDULO II-A', 'MÓDULO II-B'] }],
+            'paulo': [{ id: 'arte', name: 'Arte', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
+            'wesley': [{ id: 'mat', name: 'Matemática', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D', 'VII ETAPA'] }],
+            'wilsilene': [{ id: 'quim', name: 'Química', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D', 'VII ETAPA'] }],
+            'wilson': [{ id: 'bio', name: 'Biologia', classes: ['VII ETAPA'] }]
+        };
+
+        const STUDENTS_BY_CLASS = {
+            'MÓDULO II-A': ['AMADEU DAVID CORTEZ NUNES', 'ANA CAROLINA RODRIGUES DE SOUZA', 'BRENDA KALYNE FERREIRA DE OLIVEIRA', 'FELIPE DE OLIVEIRA ARAUJO', 'FLÁVIO WILLIAM SILVA SOUSA', 'GUILHERME RODRIGUES DA SILVA GONCALVES', 'HENRY LUIS GOMES QUEIROZ SANTANA', 'ISAMARA JOVITA ARAUJO TORRES', 'JACKSON DA COSTA SANTOS', 'JANA CLEA FERREIRA DE CARVALHO', 'JOSE GONCALVES DE ARAUJO', 'LARISSA ANTONELA DA SILVA PACIFICO', 'LUIS CARLOS CRUZ SILVA', 'MARCOS SILVA DE OLIVEIRA', 'MARIA ANTONIA VIEIRA DA SILVA', 'MARIA ELIANE DE SOUSA', 'MARIA VITÓRIA FREITAS GALVÃO', 'SABRINA LIMA OLIVEIRA', 'SAYANE VITORIA DOS SANTOS SOUSA LIMA', 'SUZANA RAQUEL SANTOS SILVA', 'THIAGO DANIEL DA SILVA PINTO'],
+            'MÓDULO II-B': ['ADRIANA CONCEIÇÃO PEREIRA DE ALMEIDA', 'ALINE GONCALVES DE MELO', 'DADIANE MARIA DA SILVA', 'ERLANE NASCIMENTO DE SOUSA', 'FRANCIMAURA DE SOUSA VELÔSO', 'FRANCISCA MARIA DOS SANTOS BRAGA', 'GUILHERME DOS SANTOS BRITO', 'IASMIN ROCHA DOS SANTOS', 'ISADORA AGUIAR DOS SANTOS', 'JAQUELINE', 'JOSÉ BALDOMIRO BEZERRA DE SOUSA', 'LINDALVA PEREIRA DOS SANTOS', 'LUCAS SAMUEL DE SOUSA SILVA', 'MARIA DA GLORIA FERREIRA DÓRIA', 'MARIA RAMOS DO NASCIMENTO', 'MARLENE DE OLIVEIRA MORAES', 'PEDRO HENRIQUE ALVES DA SILVA', 'RAILTON GABRIEL PEREIRA DOS SANTOS', 'TAMIRES SOUSA DOS SANTOS', 'VANESSA ADRIELE SOARES DA SILVA'],
+            'MÓDULO IV-A': ['BELINA OLIVAL LIMA FAUSTINO', 'CIBELE BRITO DO NASCIMENTO ANDRADE', 'DANIELE VITORIA CARNEIRO GOMES', 'FABIÚLA MEDEIROS ASSUNÇÃO', 'GIOVANNA DE MOURA FREITAS SILVA LIMA', 'IAGO ASSUNÇÃO SIMIÃO DA SILVA', 'ISRAEL DE OLIVEIRA SANTOS', 'JOSÉ HOLANDA MENDES', 'KAIRO WESLEY ALVES FRASAO', 'LUCAS VINICIO PINTO FONTINELE', 'LUCIA JULIANA DE ARAÚJO', 'PAULA LAIZE DOS SANTOS OLIVEIRA', 'PRISCILA AROUCHA DOS SANTOS', 'RAYCILLA ANNYELLE SOUSA DE ARAUJO'],
+            'MÓDULO IV-B': ['CLÉIA SILVA DE SÁ', 'DANUSA CLEMENTE DE SOUSA', 'DAVID KAUAN DA SILVA COSTA', 'FRANCILDO LEMOS PEREIRA DOS ANJOS', 'FRANCILENE DIAS SANTOS', 'FRANCISCO TIAGO DE SOUZA SILVA', 'ILANNA MARA NASCIMENTO', 'ISANILDE PEREIRA DE SOUSA', 'JOAO BATISTA DUARDO DE CARVALHO', 'KÁSSIA CLEMENTE DE SOUSA', 'MATHEUS RODRIGUES DOS SANTOS SILVA', 'RAFAEL NETO DE MELO', 'RITA PEREIRA DA SILVA', 'VANESSA LAYNE DOS SANTOS CARVALHO', 'YASMIN VITORIA RODRIGUES DA SILVA'],
+            'MÓDULO IV-C': ['FRANCISCA JEOVANA MORAES FIALHO', 'FRANCISCO EDER SIQUEIRA DOS SANTOS', 'ISAIAS DOS REIS DE SOUZA', 'LEONNA KAMILY LARISSA BATISTA DE SOUSA', 'MARIA DA CRUZ MESQUITA CUNHA', 'PALOMA CRISTINA FRANÇA OLIVEIRA', 'RAMON DE OLIVEIRA MORAES', 'RAQUEL DA SILVA CARVALHO', 'ROSIVALDO DOS SANTOS SILVA', 'THAMARA KELY DA SILVA', 'WALLAS MARQUES DA SILVA RIBEIRO', 'YURE MATHEUS SOARES DE OLIVEIRA'],
+            'MÓDULO IV-D': ['ANTONIO TALISSON DE SOUSA OLIVEIRA', 'CLIVALLYN RYAN RODRIGUES MELO DE SOUSA SILVA', 'IZA DA SILVA LEAL LIMA', 'JAIRO BELFORT SILVA', 'JENNYFER LORRANY DA CUNHA RODRIGUES', 'KLIS MARLEY VIANA ARAUJO', 'LETICIA RODRIGUES SILVA', 'LUCAS KALEB LOPES BATALHA', 'LUCAS MATEUS RODRIGUES SILVA', 'MARIA DA CRUZ DE ANDRADE OLIVEIRA', 'MARIA VITORIA DA SILVA CONSTACIO', 'MARIA VITORIA SOARES PESSOA VIEIRA', 'MAURICIO VIANA GOMES', 'MELISSA GABRIELA LIMA DE ARAUJO', 'RAIMUNDO NONATO DOS SANTOS'],
+            'VII ETAPA': ['ALISSON CLEBERT PINTO PEREIRA', 'ANA TERESA DA SILVA SOUSA', 'ANNA GABRYELLA TORRES COSTA', 'ANTONIEL SANTOS DE OLIVEIRA', 'BRUNO GUIDO DA SILVA LEAL', 'CAMILIA MARIA DE SOUSA COSTA ALVES', 'CARLOS HENRIQUE SANTOS FARIAS', 'CHRISTYAN KAUAN SANTOS DA SILVA', 'CLARA KELLY SILVA BEZERRA LOPES', 'DANIELA VIEIRA DA SILVA', 'ESDRAS SHINAYDER LEITE SILVA', 'ESHILEY VITORIA DE AGUIAR BORGES', 'FRANCIELLY DE SOUSA SILVA', 'GEORGE LUIZ MOURA DOS SANTOS', 'HELLEN LETICIA LIMA E SILVA', 'ISLAINE VITÓRIA VIANA', 'JUAN KELLME CORTEZ SILVA', 'LUCIANA DE SANTANA LIMA', 'MARIA DO SOCORRO NEVES DA SILVA', 'MARLY DE OLIVEIRA MORAES', 'MATEUS DA SILVA ARAUJO', 'MATEUS GOMES DOURADO', 'NAYSLA BEATRIZ DE SOUSA FERREIRA', 'PABLO HENRIQUE PORTELA RODRIGUES DA SILVA', 'SUYANE MARIA SILVA SANTOS OLIVEIRA', 'THALLYSON DAVI DA SILVA LIMA', 'VICTOR WAGNER SOUSA BARBOSA', 'VITORIA MAURIELI DOS SANTOS DA SILVA', 'YANA CAROLINE VIEIRA DE SOUSA']
+        };
+
+        // --- FUNÇÕES ---
+
+        async function init() {
+            try {
+                if (!window.supabase) {
+                    throw new Error("Biblioteca Supabase não carregou. Verifique a internet.");
+                }
+                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+                const { count, error } = await supabase.from('teachers').select('*', { count: 'exact', head: true });
+                if (error) throw error;
+                document.getElementById('conn-status').innerHTML = `<span class="success">✅ Conectado ao Cofre (Supabase). ${count} Professores detectados.</span>`;
+                document.getElementById('btn-restore').disabled = false;
+            } catch (err) {
+                document.getElementById('conn-status').innerHTML = `<span class="error">❌ Erro de Conexão: ${err.message}</span>`;
+                log(JSON.stringify(err), 'error');
+            }
+        }
+
+        async function startRestoration() {
+            document.getElementById('btn-restore').disabled = true;
+            log("🚀 INICIANDO RESTAURAÇÃO (Pelo Celular)...");
+
+            // 1. Restaurar Professores
+            log("📦 Enviando Professores...");
+            for (const t of TEACHERS) {
+                const { error } = await supabase.from('teachers').upsert(t);
+                if (error) log(`Erro ao salvar ${t.name}: ${error.message}`, 'error');
+                else log(`✅ Professor ${t.name} salvo/atualizado.`);
+            }
+
+            // 2. Restaurar Alunos e Disciplinas
+            log("📦 Configurando Turmas e Alunos...");
+
+            // Inserir Alunos
+            for (const [className, studentNames] of Object.entries(STUDENTS_BY_CLASS)) {
+                log(`Processando turma ${className}...`);
+                const studentsData = studentNames.map((name, idx) => ({
+                    id: `${className.replace(/\s+/g, '-').toLowerCase()}-${idx + 1}`,
+                    name: name,
+                    class: className,
+                    active: true
+                }));
+
+                const { error: errAlunos } = await supabase.from('students').upsert(studentsData);
+                if (errAlunos) log(`Erro alunos ${className}: ${errAlunos.message}`, 'error');
+                else log(`✅ ${studentsData.length} alunos salvos em ${className}.`);
+            }
+
+            // Inserir Disciplinas (Ligação Professor -> Turma)
+            log("📦 Vinculando Disciplinas...");
+            for (const [teacherId, disciplines] of Object.entries(TEACHER_DISCIPLINES)) {
+                for (const d of disciplines) {
+                    const disciplineData = {
+                        discipline_id: `${teacherId}-${d.id}`,
+                        discipline_name: d.name,
+                        teacher_id: teacherId,
+                        classes: d.classes
+                    };
+                    const { error } = await supabase.from('disciplines').upsert(disciplineData);
+                    if (error) log(`Erro disciplina ${d.name} (${teacherId}): ${error.message}`, 'error');
+                }
+            }
+
+            log("🏁 RESTAURAÇÃO CONCLUÍDA! Pode fechar e abrir o App.", 'success');
+            alert("Sucesso! Os dados foram enviados.");
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+
+</html>

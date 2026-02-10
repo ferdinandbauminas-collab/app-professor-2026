@@ -1,0 +1,9 @@
+Ôªø--- STATUS DO GIT ---
+'git' n∆o Ç reconhecido como um comando interno
+ou externo, um programa oper†vel ou um arquivo em lotes.
+--- ULTIMOS COMMITS ---
+'git' n∆o Ç reconhecido como um comando interno
+ou externo, um programa oper†vel ou um arquivo em lotes.
+--- TENTANDO PUSH ---
+'git' n∆o Ç reconhecido como um comando interno
+ou externo, um programa oper†vel ou um arquivo em lotes.

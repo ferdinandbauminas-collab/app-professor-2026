@@ -1,0 +1,8 @@
+
+{
+  "name": "CETI Auristela Soares - Professor App",
+  "description": "A mobile-first school management application for teachers to manage classes, subjects, and take student attendance with a modern UI.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

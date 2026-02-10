@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="light">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CETI Professor v2</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Lexend:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#2b8cee">
+    <link rel="apple-touch-icon" href="/pwa-192x192.png">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4f46e5",
+                        "secondary": "#7c3aed",
+                        "accent": "#f59e0b",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#020617",
+                        "success": "#10b981",
+                        "danger": "#f43f5e",
+                        "glass": "rgba(255, 255, 255, 0.1)",
+                        "glass-dark": "rgba(0, 0, 0, 0.3)"
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"],
+                        "sans": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "4xl": "2.5rem",
+                        "5xl": "3.5rem"
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #7c3aed;
+            --accent: #f59e0b;
+            --background-light: #f8fafc;
+            --background-dark: #020617;
+            --success: #10b981;
+            --danger: #f43f5e;
+        }
+
+        body {
+            background-color: var(--background-dark);
+            color: white;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            margin: 0;
+            min-height: 100dvh;
+            overflow-x: hidden;
+        }
+
+        .glass-morphism {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .bg-premium {
+            background: radial-gradient(circle at top right, var(--primary) 0%, var(--secondary) 30%, var(--background-dark) 100%);
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fade-in-up 0.8s ease-out forwards;
+        }
+
+        .font-display {
+            font-family: 'Lexend', sans-serif;
+        }
+
+        /* Utilitários para Modais (Polyfill para quando Tailwind CDN falha) */
+        .fixed {
+            position: fixed;
+        }
+
+        .absolute {
+            position: absolute;
+        }
+
+        .inset-0 {
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .items-end {
+            align-items: flex-end;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .h-screen {
+            height: 100vh;
+        }
+
+        .z-50 {
+            z-index: 50;
+        }
+
+        .z-\[9999\] {
+            z-index: 9999;
+        }
+
+        .overflow-hidden {
+            overflow: hidden;
+        }
+
+        .overflow-y-auto {
+            overflow-y: auto;
+        }
+
+        .bg-white {
+            background-color: white;
+        }
+
+        .relative {
+            position: relative;
+        }
+
+        .max-w-md {
+            max-width: 28rem;
+        }
+
+        .rounded-t-4xl {
+            border-top-left-radius: 2.5rem;
+            border-top-right-radius: 2.5rem;
+        }
+
+        .rounded-2xl {
+            border-radius: 1rem;
+        }
+
+        .rounded-3xl {
+            border-radius: 1.5rem;
+        }
+
+        .rounded-4xl {
+            border-radius: 2rem;
+        }
+
+        .bg-slate-50 {
+            background-color: #f8fafc;
+        }
+
+        .bg-slate-100 {
+            background-color: #f1f5f9;
+        }
+
+        .bg-slate-800 {
+            background-color: #1e293b;
+        }
+
+        .bg-slate-900 {
+            background-color: #0f172a;
+        }
+
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+
+        .p-4 {
+            padding: 1rem;
+        }
+
+        .p-6 {
+            padding: 1.5rem;
+        }
+
+        .p-8 {
+            padding: 2rem;
+        }
+
+        .px-6 {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        .py-2 {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .space-y-2>*+* {
+            margin-top: 0.5rem;
+        }
+
+        .text-primary {
+            color: var(--primary);
+        }
+
+        .text-white {
+            color: white;
+        }
+
+        .text-slate-400 {
+            color: #94a3b8;
+        }
+
+        .text-slate-800 {
+            color: #1e293b;
+        }
+
+        .bg-primary {
+            background-color: var(--primary);
+        }
+
+        .bg-primary\/5 {
+            background-color: rgba(79, 70, 229, 0.05);
+        }
+
+        .bg-primary\/20 {
+            background-color: rgba(79, 70, 229, 0.2);
+        }
+
+        .border-primary\/20 {
+            border-color: rgba(79, 70, 229, 0.2);
+        }
+
+        .border-transparent {
+            border-color: transparent;
+        }
+
+        .border-2 {
+            border-width: 2px;
+            border-style: solid;
+        }
+
+        .font-black {
+            font-weight: 900;
+        }
+
+        .uppercase {
+            text-transform: uppercase;
+        }
+
+        .tracking-tight {
+            letter-spacing: -0.025em;
+        }
+
+        .tracking-tighter {
+            letter-spacing: -0.05em;
+        }
+
+        .truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .p-4 {
+            padding: 1rem;
+        }
+
+        .size-10 {
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+
+        .size-12 {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        .rounded-xl {
+            border-radius: 0.75rem;
+        }
+
+        .shadow-md {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+</head>
+
+<body class="overflow-x-hidden">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>

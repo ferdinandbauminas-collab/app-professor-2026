@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Conexão Supabase</title>
+</head>
+<body>
+    <h1>Teste de Conexão Direta com Supabase</h1>
+    <p>Abra o console do desenvolvedor (F12) para ver os resultados.</p>
+    <div id="result"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        const supabaseUrl = 'https://ouoddjrjgkkwjvewgufr.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91b2RkanJqZ2trd2p2ZXdndWZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxNzMzMjYsImV4cCI6MjA4Mzc0OTMyNn0.L_4ZhITnLrAf0wYAN7ZM47hIc1IVzi7su8D4lacRAK0';
+        
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = `<p>Tentando conectar a: <strong>${supabaseUrl}</strong></p>`;
+        
+        console.log('--- INICIANDO TESTE DE CONEXÃO SUPABASE ---');
+        console.log('URL:', supabaseUrl);
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        async function testFetch() {
+            try {
+                let { data: teachers, error } = await supabase
+                    .from('teachers')
+                    .select('*')
+                    .limit(5);
+
+                if (error) {
+                    console.error('❌ ERRO DETECTADO:', error);
+                    resultDiv.innerHTML += `<p style="color: red;">Falha na conexão! Erro: ${error.message}</p>`;
+                } else {
+                    console.log('✅ SUCESSO! Dados recebidos:', teachers);
+                    resultDiv.innerHTML += `<p style="color: green;">Conexão bem-sucedida! ${teachers.length} professores encontrados.</p>`;
+                    resultDiv.innerHTML += '<pre>' + JSON.stringify(teachers, null, 2) + '</pre>';
+                }
+            } catch (e) {
+                console.error('❌ ERRO CATASTRÓFICO:', e);
+                resultDiv.innerHTML += `<p style="color: red;">Falha grave! Erro: ${e.message}</p>`;
+            }
+        }
+
+        testFetch();
+    </script>
+</body>
+</html>

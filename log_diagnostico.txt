@@ -1,0 +1,16 @@
+--- DATA E HORA --- 
+09/02/2026 
+22:05
+ 
+--- GIT REMOTE (Onde esta conectado?) --- 
+fatal: not a git repository (or any of the parent directories): .git
+ 
+--- GIT STATUS (O que esta pendente?) --- 
+fatal: not a git repository (or any of the parent directories): .git
+ 
+--- ULTIMOS COMMITS (O que foi salvo?) --- 
+fatal: not a git repository (or any of the parent directories): .git
+ 
+--- TENTATIVA DE PUSH (Simulacao) --- 
+fatal: not a git repository (or any of the parent directories): .git
+ 

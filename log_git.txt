@@ -1,0 +1,16 @@
+DIAGNOSTICO GIT 
+Data: 03/02/2026 11:12:20,18 
+ 
+--- GIT STATUS --- 
+'git' n∆o Ç reconhecido como um comando interno
+ou externo, um programa oper†vel ou um arquivo em lotes.
+ 
+--- GIT REMOTE --- 
+'git' n∆o Ç reconhecido como um comando interno
+ou externo, um programa oper†vel ou um arquivo em lotes.
+ 
+--- TENTATIVA DE PUSH --- 
+'git' n∆o Ç reconhecido como um comando interno
+ou externo, um programa oper†vel ou um arquivo em lotes.
+ 
+--- FIM --- 
