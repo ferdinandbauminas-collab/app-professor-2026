@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { AppScreen, Teacher, Discipline, Student } from './types';
+import { AppScreen, Teacher, Discipline, Student, ClassData } from './types';
 // Importação de constantes removida, dados virão do Supabase
 // import { TEACHER_DISCIPLINES, getStudentsForClass } from './constants'; 
 import Login from './components/Login';
@@ -9,7 +9,7 @@ import ClassesModal from './components/ClassesModal';
 import Attendance from './components/Attendance';
 import Success from './components/Success';
 import Header from './components/Header';
-import { fetchTeachers, fetchDisciplines, fetchStudents } from './lib/supabase'; // Importar funções do Supabase
+import { fetchTeachers, fetchDisciplines, fetchStudents, fetchClasses } from './lib/supabase'; // Importar funções do Supabase
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>(AppScreen.LOGIN);
@@ -19,6 +19,7 @@ const App: React.FC = () => {
   const [allTeachers, setAllTeachers] = useState<Teacher[]>([]);
   const [allDisciplines, setAllDisciplines] = useState<Discipline[]>([]);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [allClassesSupabase, setAllClassesSupabase] = useState<ClassData[]>([]); // Novo estado para todas as classes do Supabase
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,14 +53,18 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const [teachersData, disciplinesData, studentsData] = await Promise.all([
+        const [teachersData, disciplinesData, studentsData, classesData] = await Promise.all([
           fetchTeachers(),
           fetchDisciplines(),
           fetchStudents(),
+          console.log('Chamando fetchClasses...'), // Adicionado para depuração
+          fetchClasses(), // Chamar a nova função fetchClasses
         ]);
         setAllTeachers(teachersData);
         setAllDisciplines(disciplinesData);
         setAllStudents(studentsData);
+        setAllClassesSupabase(classesData); // Salvar as classes no novo estado
+        console.log('📚 Turmas Supabase carregadas no estado:', classesData); // Adicionado para depuração
       } catch (err: any) {
         console.error("Erro ao carregar dados iniciais:", err);
         console.error("Erro ao carregar dados iniciais:", err);
@@ -135,16 +140,11 @@ const App: React.FC = () => {
 
   // Helper to get classes based on selection from fetched data
   const getTeacherClasses = useCallback(() => {
-    if (selectedDiscipline) {
-      return selectedDiscipline.classes;
-    }
-    // Se nenhuma disciplina selecionada, mostrar todas as turmas únicas de todas as disciplinas do professor logado
-    if (!selectedTeacher) return [];
-    const disciplinesOfTeacher = allDisciplines.filter(d => d.teacherId === selectedTeacher.id);
-    const allClasses = new Set<string>();
-    disciplinesOfTeacher.forEach(d => d.classes.forEach(c => allClasses.add(c)));
-    return Array.from(allClasses).sort(); // Ordenar alfabeticamente
-  }, [selectedDiscipline, selectedTeacher, allDisciplines]);
+    // Retorna todas as turmas carregadas do Supabase, sem filtragem
+    const classesToReturn = allClassesSupabase.map(cls => cls.name).sort();
+    console.log('🏫 Classes sendo retornadas por getTeacherClasses:', classesToReturn); // Adicionado para depuração
+    return classesToReturn;
+  }, [allClassesSupabase]);
 
   // Função para filtrar alunos pela turma
   const getStudentsForSelectedClass = useCallback(() => {
@@ -255,7 +255,7 @@ const App: React.FC = () => {
       {/* Modal de Turmas */}
       {selectedTeacher && (
         <ClassesModal
-          classes={getTeacherClasses()} // Usar turmas filtradas
+          classes={getTeacherClasses()} // Usar todas as turmas do Supabase
           isOpen={showClassesModal}
           onClose={handleCloseClasses}
           onSelect={handleSelectClass}

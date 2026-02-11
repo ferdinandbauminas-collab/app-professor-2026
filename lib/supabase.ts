@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Teacher, Student, Discipline } from '../types'; // Importar tipos
+import { Teacher, Student, Discipline, ClassData } from '../types'; // Importar tipos e ClassData
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -161,3 +161,25 @@ export async function fetchStudents(): Promise<Student[]> {
     }
     return data as Student[];
 }
+
+export async function fetchClasses(): Promise<ClassData[]> {
+    const { data, error } = await supabase
+        .from('TURMAS') // Nome da tabela informado pelo usuário
+        .select('ID, NAME'); // Colunas informadas pelo usuário
+
+    if (error) {
+        console.error('Erro ao buscar turmas:', error.message);
+        throw error;
+    }
+    
+    console.log(`🏫 Turmas encontradas no banco: ${data?.length || 0}`, data); // Adicionado para depuração
+
+    // Mapear para o tipo ClassData
+    return data.map(item => ({
+        id: item.ID,
+        name: item.NAME,
+        totalStudents: 0, // Valor padrão, já que não temos essa informação da tabela TURMAS
+        students: [] // Array vazio padrão
+    })) as ClassData[];
+}
+
