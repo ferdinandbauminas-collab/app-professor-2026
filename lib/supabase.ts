@@ -164,7 +164,7 @@ export async function fetchStudents(): Promise<Student[]> {
 
 export async function fetchClasses(): Promise<ClassData[]> {
     const { data, error } = await supabase
-        .from('TURMAS') // Revertido temporariamente para "TURMAS" (maiúsculas) para forçar cache do Vercel
+        .from('Turmas') // Nome da tabela informado pelo usuário (corrigido para "Turmas")
         .select('ID, NAME'); // Colunas informadas pelo usuário
 
     if (error) {
