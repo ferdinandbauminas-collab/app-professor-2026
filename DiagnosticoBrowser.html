@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Diagnóstico Supabase - Tabela Turmas</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #status {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        pre {
+            background: #eee;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <div class="card">
+        <h1>🕵️ Diagnóstico de Conexão</h1>
+        <p>Este teste verifica se o navegador consegue ler a tabela <strong>Turmas</strong>.</p>
+
+        <div style="margin-bottom: 20px;">
+            <label><strong>URL do Supabase:</strong></label><br>
+            <input type="text" id="url" style="width: 100%; padding: 8px; margin-top: 5px;"
+                placeholder="https://...supabase.co">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label><strong>Chave (Anon Key):</strong></label><br>
+            <input type="text" id="key" style="width: 100%; padding: 8px; margin-top: 5px;" placeholder="eyJ...">
+        </div>
+
+        <button onclick="runTest()">Testar Conexão Agora</button>
+
+        <hr>
+        <div id="status">Aguardando teste...</div>
+        <pre id="log">Logs aparecerão aqui...</pre>
+    </div>
+
+    <script>
+        function log(msg, type = 'info') {
+            const el = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            el.innerHTML += `\n[${time}] ${msg}`;
+            console.log(msg);
+        }
+
+        async function runTest() {
+            document.getElementById('log').innerHTML = 'Iniciando teste...';
+            const url = document.getElementById('url').value.trim();
+            const key = document.getElementById('key').value.trim();
+
+            if (!url || !key) {
+                document.getElementById('status').innerHTML = '<span class="error">❌ Preencha URL e Chave!</span>';
+                return;
+            }
+
+            try {
+                const supabase = window.supabase.createClient(url, key);
+                document.getElementById('status').innerHTML = '⏳ Conectando...';
+
+                log(`Tentando buscar dados da tabela 'Turmas'...`);
+
+                const { data, error } = await supabase.from('Turmas').select('*');
+
+                if (error) {
+                    document.getElementById('status').innerHTML = '<span class="error">❌ Falha na conexão!</span>';
+                    log(`ERRO: ${error.message} (Code: ${error.code})`);
+                    if (error.code === '42501') log('DICA: Erro de permissão (RLS). Rode o script SQL de correção.');
+                    if (error.code === '42P01') log('DICA: Tabela não encontrada.');
+                } else {
+                    document.getElementById('status').innerHTML = '<span class="success">✅ Sucesso!</span>';
+                    log(`Registros encontrados: ${data.length}`);
+                    if (data.length === 0) log('⚠️ A tabela existe mas está VAZIA.');
+                    else log(`Exemplo: ${JSON.stringify(data[0])}`);
+                }
+
+            } catch (e) {
+                document.getElementById('status').innerHTML = '<span class="error">❌ Erro Inesperado</span>';
+                log(`Exceção: ${e.message}`);
+            }
+        }
+    </script>
+</body>
+
+</html>

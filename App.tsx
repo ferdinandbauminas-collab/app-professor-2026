@@ -57,7 +57,6 @@ const App: React.FC = () => {
           fetchTeachers(),
           fetchDisciplines(),
           fetchStudents(),
-          console.log('Chamando fetchClasses...'), // Adicionado para depuração
           fetchClasses(), // Chamar a nova função fetchClasses
         ]);
         setAllTeachers(teachersData);
@@ -150,11 +149,22 @@ const App: React.FC = () => {
   const getStudentsForSelectedClass = useCallback(() => {
     if (!selectedClass) return [];
 
+    console.log('🔍 DEBUG: Filtrando alunos para a turma:', selectedClass);
+    console.log('🔍 DEBUG: Total de alunos disponíveis:', allStudents.length);
+    console.log('🔍 DEBUG: Primeiros 3 alunos:', allStudents.slice(0, 3));
+
     const targetClass = selectedClass.toLowerCase().trim();
-    return allStudents.filter(student => {
+    const filtered = allStudents.filter(student => {
       const studentClass = (student.class || '').toLowerCase().trim();
-      return studentClass === targetClass;
+      const matches = studentClass === targetClass;
+      if (matches) {
+        console.log('✅ Aluno encontrado:', student.name, '- Turma:', student.class);
+      }
+      return matches;
     }).sort((a, b) => a.name.localeCompare(b.name));
+
+    console.log('🔍 DEBUG: Alunos filtrados:', filtered.length);
+    return filtered;
   }, [selectedClass, allStudents]);
 
   if (isLoading) {

@@ -24,6 +24,7 @@ export interface Student {
   id: string;
   name: string;
   photoUrl: string;
+  class?: string; // Turma do aluno
   status?: 'present' | 'absent';
 }
 

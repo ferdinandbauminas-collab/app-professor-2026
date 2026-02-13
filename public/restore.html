@@ -5,22 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restaurador de Dados - App Professor</title>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Usando JSDelivr para maior confiabilidade -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
-            font-family: sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             line-height: 1.6;
+            background-color: #f0f2f5;
         }
 
         .card {
-            border: 1px solid #ccc;
-            padding: 20px;
-            border-radius: 8px;
+            border: none;
+            padding: 25px;
+            border-radius: 16px;
             margin-bottom: 20px;
-            background: #f9f9f9;
+            background: white;
+            shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1e293b;
+            text-align: center;
         }
 
         button {
@@ -28,60 +37,83 @@
             color: white;
             border: none;
             padding: 15px 30px;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 18px;
-            margin-right: 10px;
+            font-size: 16px;
+            font-weight: bold;
             width: 100%;
             margin-bottom: 10px;
+            transition: all 0.2s;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background: #4338ca;
+            transform: translateY(-1px);
         }
 
         button:disabled {
-            background: #ccc;
+            background: #cbd5e1;
             cursor: not-allowed;
         }
 
         #log {
-            background: #000;
-            color: #0f0;
-            padding: 15px;
-            border-radius: 5px;
-            height: 300px;
+            background: #0f172a;
+            color: #4ade80;
+            padding: 20px;
+            border-radius: 12px;
+            height: 350px;
             overflow-y: auto;
-            font-family: monospace;
-            font-size: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .status-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f8fafc;
         }
 
         .success {
-            color: green;
+            color: #16a34a;
             font-weight: bold;
         }
 
         .error {
-            color: red;
+            color: #dc2626;
             font-weight: bold;
+        }
+
+        .loading {
+            color: #64748b;
+            font-style: italic;
         }
     </style>
 </head>
 
 <body>
-    <h1>🛠️ Restaurador de Dados (Via Celular)</h1>
-    <p>Use esta página para restaurar os dados do sistema diretamente do seu celular.</p>
+    <h1>🛠️ Restaurador de Dados (v2.1)</h1>
+    <p style="text-align: center; color: #64748b;">Use esta página para enviar a lista completa de alunos para o
+        Supabase.</p>
 
     <div class="card">
         <h3>1. Status da Conexão</h3>
-        <div id="conn-status">Testando...</div>
+        <div id="conn-status" class="status-box loading">Iniciando sistema...</div>
+        <button id="btn-retry" onclick="init()"
+            style="margin-top: 15px; font-size: 12px; padding: 8px; background: #94a3b8; display: none;">Tentar
+            Novamente</button>
     </div>
 
     <div class="card">
         <button id="btn-restore" onclick="startRestoration()" disabled>INICIAR RESTAURAÇÃO AGORA</button>
+        <p style="font-size: 11px; color: #94a3b8; text-align: center;">Isso irá apagar dados antigos de
+            professores/alunos e inserir os novos.</p>
     </div>
 
-    <div id="log">Aguardando comando...</div>
+    <div id="log">Aguardando...</div>
 
     <script>
         // --- CONFIGURAÇÃO ---
@@ -89,19 +121,18 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbHdzd3BncnFmbGR2cGJxeGNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTU2Mjg0MDQsImV4cCI6MjAzMTIwNDQwNH0.5N_u6Y-0iG2s1s024s2yNCe-iZ0rnF3xKq6H3kTl3rU';
 
         let supabase;
-
         const logDiv = document.getElementById('log');
 
         function log(msg, type = 'info') {
             const time = new Date().toLocaleTimeString();
-            let color = '#0f0';
+            let color = '#4ade80';
             if (type === 'error') color = '#f87171';
             if (type === 'warn') color = '#fbbf24';
             logDiv.innerHTML += `<div style="color:${color}">[${time}] ${msg}</div>`;
             logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type}] ${msg}`);
         }
 
-        // --- DADOS RECUPERADOS (CONSTANTS.TS) ---
         const TEACHERS = [
             { id: 'assuncao', name: 'Assunção', avatar: 'https://ui-avatars.com/api/?name=Assuncao&background=random' },
             { id: 'carmem', name: 'Carmem', avatar: 'https://ui-avatars.com/api/?name=Carmem&background=random' },
@@ -126,26 +157,11 @@
         ];
 
         const TEACHER_DISCIPLINES = {
-            'assuncao': [{ id: 'geo', name: 'Geografia', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D', 'VII ETAPA'] }],
-            'carmem': [{ id: 'ing', name: 'Inglês', classes: ['MÓDULO II-A', 'MÓDULO II-B'] }],
-            'daniel': [{ id: 'soc', name: 'Sociologia', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
-            'denilson': [{ id: 'so', name: 'Sistemas Operacionais', classes: ['MÓDULO II-A', 'MÓDULO II-B'] }, { id: 'arq', name: 'Arquitetura e Manutenção', classes: ['MÓDULO II-A', 'MÓDULO II-B'] }],
-            'ednardo': [{ id: 'fis', name: 'Física', classes: ['VII ETAPA'] }, { id: 'eletiva', name: 'Eletiva Orientada', classes: ['VII ETAPA'] }],
-            'eunice': [{ id: 'port', name: 'Língua Portuguesa', classes: ['VII ETAPA'] }],
-            'francineuda': [{ id: 'port', name: 'Língua Portuguesa', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
-            'francisca': [{ id: 'hist', name: 'História', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D', 'VII ETAPA'] }],
-            'helane': [{ id: 'bio', name: 'Biologia', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
-            'jandira': [{ id: 'edfis', name: 'Educação Física', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'VII ETAPA'] }],
-            'joanilson': [{ id: 'arte', name: 'Arte', classes: ['VII ETAPA'] }, { id: 'fil', name: 'Filosofia', classes: ['VII ETAPA'] }, { id: 'pv', name: 'Projeto de Vida', classes: ['VII ETAPA'] }, { id: 'soc', name: 'Sociologia', classes: ['VII ETAPA'] }],
-            'jorge': [{ id: 'fis', name: 'Física', classes: ['MÓDULO II-A', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
-            'lindelvania': [{ id: 'esp', name: 'Espanhol', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }, { id: 'ing', name: 'Inglês', classes: ['VII ETAPA'] }],
-            'luciano': [{ id: 'progweb', name: 'Programação para Web', classes: ['MÓDULO IV-A', 'MÓDULO IV-B'] }, { id: 'redes', name: 'Redes de Computadores', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
-            'marcos': [{ id: 'progweb', name: 'Programação para Web', classes: ['MÓDULO IV-C', 'MÓDULO IV-D'] }, { id: 'pai', name: 'Proj. Aprendizagem Interdisciplinar', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
-            'mizael': [{ id: 'bd', name: 'Banco de Dados', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }, { id: 'ed', name: 'Estrutura de Dados', classes: ['MÓDULO II-A', 'MÓDULO II-B'] }],
-            'paulo': [{ id: 'arte', name: 'Arte', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
-            'wesley': [{ id: 'mat', name: 'Matemática', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D', 'VII ETAPA'] }],
-            'wilsilene': [{ id: 'quim', name: 'Química', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D', 'VII ETAPA'] }],
-            'wilson': [{ id: 'bio', name: 'Biologia', classes: ['VII ETAPA'] }]
+            'assuncao': [{ id: 'assuncao-geo', name: 'Geografia', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D', 'VII ETAPA'] }],
+            'wesley': [{ id: 'wesley-mat', name: 'Matemática', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D', 'VII ETAPA'] }],
+            'mizael': [{ id: 'mizael-bd', name: 'Banco de Dados', classes: ['MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }, { id: 'mizael-ed', name: 'Estrutura de Dados', classes: ['MÓDULO II-A', 'MÓDULO II-B'] }],
+            'francineuda': [{ id: 'francineuda-port', name: 'Língua Portuguesa', classes: ['MÓDULO II-A', 'MÓDULO II-B', 'MÓDULO IV-A', 'MÓDULO IV-B', 'MÓDULO IV-C', 'MÓDULO IV-D'] }],
+            'eunice': [{ id: 'eunice-port', name: 'Língua Portuguesa', classes: ['VII ETAPA'] }]
         };
 
         const STUDENTS_BY_CLASS = {
@@ -158,75 +174,111 @@
             'VII ETAPA': ['ALISSON CLEBERT PINTO PEREIRA', 'ANA TERESA DA SILVA SOUSA', 'ANNA GABRYELLA TORRES COSTA', 'ANTONIEL SANTOS DE OLIVEIRA', 'BRUNO GUIDO DA SILVA LEAL', 'CAMILIA MARIA DE SOUSA COSTA ALVES', 'CARLOS HENRIQUE SANTOS FARIAS', 'CHRISTYAN KAUAN SANTOS DA SILVA', 'CLARA KELLY SILVA BEZERRA LOPES', 'DANIELA VIEIRA DA SILVA', 'ESDRAS SHINAYDER LEITE SILVA', 'ESHILEY VITORIA DE AGUIAR BORGES', 'FRANCIELLY DE SOUSA SILVA', 'GEORGE LUIZ MOURA DOS SANTOS', 'HELLEN LETICIA LIMA E SILVA', 'ISLAINE VITÓRIA VIANA', 'JUAN KELLME CORTEZ SILVA', 'LUCIANA DE SANTANA LIMA', 'MARIA DO SOCORRO NEVES DA SILVA', 'MARLY DE OLIVEIRA MORAES', 'MATEUS DA SILVA ARAUJO', 'MATEUS GOMES DOURADO', 'NAYSLA BEATRIZ DE SOUSA FERREIRA', 'PABLO HENRIQUE PORTELA RODRIGUES DA SILVA', 'SUYANE MARIA SILVA SANTOS OLIVEIRA', 'THALLYSON DAVI DA SILVA LIMA', 'VICTOR WAGNER SOUSA BARBOSA', 'VITORIA MAURIELI DOS SANTOS DA SILVA', 'YANA CAROLINE VIEIRA DE SOUSA']
         };
 
-        // --- FUNÇÕES ---
-
         async function init() {
+            const statusEl = document.getElementById('conn-status');
+            const retryBtn = document.getElementById('btn-retry');
+            statusEl.innerHTML = '<span class="loading">🔄 Testando conexão com Supabase...</span>';
+            statusEl.className = 'status-box loading';
+            retryBtn.style.display = 'none';
+
+            log("Tentando inicializar Supabase...");
+
             try {
                 if (!window.supabase) {
-                    throw new Error("Biblioteca Supabase não carregou. Verifique a internet.");
+                    log("Aguardando carregamento da biblioteca Supabase...", "warn");
+                    // Tentar novamente em 2 segundos
+                    setTimeout(init, 2000);
+                    return;
                 }
-                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-                const { count, error } = await supabase.from('teachers').select('*', { count: 'exact', head: true });
-                if (error) throw error;
-                document.getElementById('conn-status').innerHTML = `<span class="success">✅ Conectado ao Cofre (Supabase). ${count} Professores detectados.</span>`;
-                document.getElementById('btn-restore').disabled = false;
+                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                log("Cliente Supabase criado. Testando tabelas...");
+
+                // Teste simplificado: apenas ver se a tabela existe
+                const { error } = await supabase.from('teachers').select('id').limit(1);
+
+                if (error) {
+                    log(`Erro de conexão: ${error.message}`, "error");
+                    statusEl.innerHTML = `<span class="error">❌ Erro: ${error.message}</span>`;
+                    statusEl.className = 'status-box';
+                    retryBtn.style.display = 'block';
+                } else {
+                    log("✅ Conexão estabelecida com sucesso!", "success");
+                    statusEl.innerHTML = `<span class="success">✅ Conectado ao Cofre</span>`;
+                    statusEl.className = 'status-box';
+                    document.getElementById('btn-restore').disabled = false;
+                }
             } catch (err) {
-                document.getElementById('conn-status').innerHTML = `<span class="error">❌ Erro de Conexão: ${err.message}</span>`;
-                log(JSON.stringify(err), 'error');
+                log(`Falha crítica: ${err.message}`, "error");
+                statusEl.innerHTML = `<span class="error">💥 Falha: ${err.message}</span>`;
+                statusEl.className = 'status-box';
+                retryBtn.style.display = 'block';
             }
         }
 
         async function startRestoration() {
-            document.getElementById('btn-restore').disabled = true;
-            log("🚀 INICIANDO RESTAURAÇÃO (Pelo Celular)...");
+            if (!confirm("Isso irá APAGAR os dados atuais do banco e inserir a nova lista. Tem certeza?")) return;
 
-            // 1. Restaurar Professores
-            log("📦 Enviando Professores...");
-            for (const t of TEACHERS) {
-                const { error } = await supabase.from('teachers').upsert(t);
-                if (error) log(`Erro ao salvar ${t.name}: ${error.message}`, 'error');
-                else log(`✅ Professor ${t.name} salvo/atualizado.`);
-            }
+            const btn = document.getElementById('btn-restore');
+            btn.disabled = true;
+            btn.innerHTML = "RESTAURANDO... AGUARDE";
 
-            // 2. Restaurar Alunos e Disciplinas
-            log("📦 Configurando Turmas e Alunos...");
+            log("🚀 INICIANDO LIMPEZA DE DADOS...");
 
-            // Inserir Alunos
-            for (const [className, studentNames] of Object.entries(STUDENTS_BY_CLASS)) {
-                log(`Processando turma ${className}...`);
-                const studentsData = studentNames.map((name, idx) => ({
-                    id: `${className.replace(/\s+/g, '-').toLowerCase()}-${idx + 1}`,
-                    name: name,
-                    class: className,
-                    active: true
+            try {
+                // 1. Limpar (Delete)
+                log("🗑️ Removendo registros antigos...");
+                await supabase.from('disciplines').delete().neq('discipline_id', '0');
+                await supabase.from('students').delete().neq('id', '0');
+                await supabase.from('teachers').delete().neq('id', '0');
+
+                // 2. Professores
+                log("👨‍🏫 Enviando 20 Professores...");
+                const { error: e1 } = await supabase.from('teachers').upsert(TEACHERS);
+                if (e1) throw e1;
+
+                // 3. Disciplinas
+                const discArray = Object.values(TEACHER_DISCIPLINES).flat().map(d => ({
+                    discipline_id: d.id,
+                    discipline_name: d.name,
+                    teacher_id: d.id.split('-')[0], // Simples extração do ID do professor
+                    classes: d.classes
                 }));
+                log(`📚 Enviando ${discArray.length} ligações de disciplinas...`);
+                const { error: e2 } = await supabase.from('disciplines').upsert(discArray);
+                if (e2) throw e2;
 
-                const { error: errAlunos } = await supabase.from('students').upsert(studentsData);
-                if (errAlunos) log(`Erro alunos ${className}: ${errAlunos.message}`, 'error');
-                else log(`✅ ${studentsData.length} alunos salvos em ${className}.`);
-            }
-
-            // Inserir Disciplinas (Ligação Professor -> Turma)
-            log("📦 Vinculando Disciplinas...");
-            for (const [teacherId, disciplines] of Object.entries(TEACHER_DISCIPLINES)) {
-                for (const d of disciplines) {
-                    const disciplineData = {
-                        discipline_id: `${teacherId}-${d.id}`,
-                        discipline_name: d.name,
-                        teacher_id: teacherId,
-                        classes: d.classes
-                    };
-                    const { error } = await supabase.from('disciplines').upsert(disciplineData);
-                    if (error) log(`Erro disciplina ${d.name} (${teacherId}): ${error.message}`, 'error');
+                // 4. Alunos
+                log("👥 Enviando alunos por turma...");
+                let total = 0;
+                for (const [className, students] of Object.entries(STUDENTS_BY_CLASS)) {
+                    const data = students.map((name, i) => ({
+                        id: `${className.replace(/\s+/g, '-').toLowerCase()}-${i + 1}`,
+                        name: name,
+                        class: className,
+                        active: true
+                    }));
+                    const { error } = await supabase.from('students').upsert(data);
+                    if (error) log(`Erro na turma ${className}: ${error.message}`, "error");
+                    else {
+                        total += data.length;
+                        log(`✅ ${data.length} alunos salvos em ${className}`);
+                    }
                 }
-            }
 
-            log("🏁 RESTAURAÇÃO CONCLUÍDA! Pode fechar e abrir o App.", 'success');
-            alert("Sucesso! Os dados foram enviados.");
+                log(`🎉 SUCESSO! ${total} alunos restaurados.`, "success");
+                alert("DADOS RESTAURADOS COM SUCESSO!");
+                btn.innerHTML = "CONCLUÍDO!";
+            } catch (err) {
+                log(`ERRO NA RESTAURAÇÃO: ${err.message}`, "error");
+                alert("ERRO: " + err.message);
+                btn.disabled = false;
+                btn.innerHTML = "TENTAR NOVAMENTE";
+            }
         }
 
-        window.addEventListener('load', init);
+        // Tenta iniciar após 1 segundo para garantir que o script foi carregado
+        setTimeout(init, 1000);
     </script>
 </body>
 

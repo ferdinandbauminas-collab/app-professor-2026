@@ -92,74 +92,91 @@ export const syncAllPending = async () => {
     };
 };
 
+import { STATIC_TEACHERS, STATIC_DISCIPLINES, STATIC_STUDENTS } from './constants'; // Importar constantes de fallback
+
 // --- Novas funções para buscar dados do Supabase ---
 
 export async function fetchTeachers(): Promise<Teacher[]> {
-    const { data, error } = await supabase
-        .from('teachers')
-        .select('*'); // Seleciona todas as colunas
+    try {
+        const { data, error } = await supabase
+            .from('teachers')
+            .select('*'); // Seleciona todas as colunas
 
-    if (error) {
-        console.error('Erro ao buscar professores:', error.message);
-        throw error;
+        if (error) {
+            console.error('Erro ao buscar professores:', error.message);
+            throw error;
+        }
+
+        console.log(`👨‍🏫 Professores encontrados no banco: ${data?.length || 0}`);
+
+        return data as Teacher[];
+    } catch (error) {
+        console.warn('⚠️ Falha ao buscar professores (Offline/Bloqueio). Usando lista estática.', error);
+        return STATIC_TEACHERS; // Fallback para lista estática
     }
-
-    console.log(`👨‍🏫 Professores encontrados no banco: ${data?.length || 0}`);
-
-    return data as Teacher[];
 }
 
 // Retorna todas as entradas de disciplina, filtragem será feita no frontend
 export async function fetchDisciplines(): Promise<Discipline[]> {
-    const { data, error } = await supabase
-        .from('disciplines')
-        .select('*');
+    try {
+        const { data, error } = await supabase
+            .from('disciplines')
+            .select('*');
 
-    if (error) {
-        console.error('Erro ao buscar disciplinas:', error.message);
-        return [];
-    }
-
-    if (!data) return [];
-
-    console.log(`📚 Disciplinas carregadas: ${data.length}`);
-
-    return data.map(d => {
-        // Garantir que classes seja um array
-        let classesArray: string[] = [];
-        if (Array.isArray(d.classes)) {
-            classesArray = d.classes;
-        } else if (typeof d.classes === 'string') {
-            try {
-                // Tentar converter de formato PostgreSQL array string se necessário
-                const cleaned = d.classes.replace('{', '').replace('}', '').replace(/"/g, '');
-                classesArray = cleaned.split(',').map(s => s.trim());
-            } catch (e) {
-                console.error('Erro ao processar as classes como string:', d.classes);
-                classesArray = [];
-            }
+        if (error) {
+            console.error('Erro ao buscar disciplinas:', error.message);
+            throw error; // Forçar fallback para STATIC_DISCIPLINES
         }
 
-        return {
-            id: d.discipline_id || d.id,
-            name: d.discipline_name || d.name,
-            classes: classesArray,
-            teacherId: d.teacher_id,
-            totalHours: 0
-        };
-    }) as Discipline[];
+        if (!data) throw new Error("Sem dados");
+
+        console.log(`📚 Disciplinas carregadas: ${data.length}`);
+
+        return data.map(d => {
+            // Garantir que classes seja um array
+            let classesArray: string[] = [];
+            if (Array.isArray(d.classes)) {
+                classesArray = d.classes;
+            } else if (typeof d.classes === 'string') {
+                try {
+                    // Tentar converter de formato PostgreSQL array string se necessário
+                    const cleaned = d.classes.replace('{', '').replace('}', '').replace(/"/g, '');
+                    classesArray = cleaned.split(',').map(s => s.trim());
+                } catch (e) {
+                    console.error('Erro ao processar as classes como string:', d.classes);
+                    classesArray = [];
+                }
+            }
+
+            return {
+                id: d.discipline_id || d.id,
+                name: d.discipline_name || d.name,
+                classes: classesArray,
+                teacherId: d.teacher_id,
+                totalHours: 0
+            };
+        }) as Discipline[];
+    } catch (error) {
+        console.warn('⚠️ Falha ao buscar disciplinas (Offline/Bloqueio). Usando lista estática.', error);
+        return STATIC_DISCIPLINES; // Fallback para lista estática
+    }
 }
 
 export async function fetchStudents(): Promise<Student[]> {
-    const { data, error } = await supabase
-        .from('students')
-        .select('*'); // Seleciona todas as colunas
+    try {
+        const { data, error } = await supabase
+            .from('students')
+            .select('*'); // Seleciona todas as colunas
 
-    if (error) {
-        console.error('Erro ao buscar alunos:', error.message);
-        return [];
+        if (error) {
+            console.error('Erro ao buscar alunos:', error.message);
+            throw error;
+        }
+        return data as Student[];
+    } catch (error) {
+        console.warn('⚠️ Falha ao buscar alunos (Offline/Bloqueio). Usando lista estática.', error);
+        return STATIC_STUDENTS; // Fallback para lista estática
     }
-    return data as Student[];
 }
 
 export async function fetchClasses(): Promise<ClassData[]> {
