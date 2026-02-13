@@ -163,23 +163,52 @@ export async function fetchStudents(): Promise<Student[]> {
 }
 
 export async function fetchClasses(): Promise<ClassData[]> {
-    const { data, error } = await supabase
-        .from('Turmas') // Nome da tabela informado pelo usuário (corrigido para "Turmas")
-        .select('ID, NAME'); // Colunas informadas pelo usuário
+    // Lista de segurança (Fallback)
+    const staticClassesList = [
+        'MÓDULO IA INFO',
+        'MÓDULO IIIA INFO',
+        'MÓDULO IIIB INFO',
+        'MÓDULO VA INFO',
+        'MÓDULO VB INFO',
+        'MÓDULO VC INFO',
+        'MÓDULO VD INFO',
+        'MÓDULO IA MARK',
+        'MÓDULO IA ALTE'
+    ];
 
-    if (error) {
-        console.error('Erro ao buscar turmas:', error.message);
-        throw error;
+    try {
+        console.log('📡 Buscando turmas no Supabase (Tabela "Turmas")...');
+        const { data, error } = await supabase
+            .from('Turmas')
+            .select('*')
+            .order('name');
+
+        if (error) {
+            console.error('⚠️ Erro ao buscar turmas no banco:', error.message);
+            throw error; // Forçar fallback
+        }
+
+        if (!data || data.length === 0) {
+            console.warn('⚠️ Tabela "Turmas" está vazia ou inacessível. Usando lista fixa.');
+            throw new Error('Tabela vazia'); // Forçar fallback
+        }
+
+        console.log(`✅ Sucesso! ${data.length} turmas carregadas do banco.`);
+
+        return data.map((item: any) => ({
+            id: item.id, // Manter o ID original do banco (UUID)
+            name: item.name,
+            totalStudents: 0,
+            students: []
+        }));
+
+    } catch (err) {
+        console.log('🔄 Ativando modo de segurança: Usando lista estática de turmas.');
+        return staticClassesList.map(className => ({
+            id: className, // No fallback, ID é o nome
+            name: className,
+            totalStudents: 0,
+            students: []
+        }));
     }
-    
-    console.log(`🏫 Turmas encontradas no banco: ${data?.length || 0}`, data); // Adicionado para depuração
-
-    // Mapear para o tipo ClassData
-    return data.map(item => ({
-        id: item.ID,
-        name: item.NAME,
-        totalStudents: 0, // Valor padrão, já que não temos essa informação da tabela TURMAS
-        students: [] // Array vazio padrão
-    })) as ClassData[];
 }
-
