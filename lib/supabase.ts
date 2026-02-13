@@ -194,9 +194,9 @@ export async function fetchClasses(): Promise<ClassData[]> {
     ];
 
     try {
-        console.log('📡 Buscando turmas no Supabase (Tabela "Turmas")...');
+        console.log('📡 Buscando turmas no Supabase (Tabela "classes")...');
         const { data, error } = await supabase
-            .from('Turmas')
+            .from('classes')
             .select('*')
             .order('name');
 

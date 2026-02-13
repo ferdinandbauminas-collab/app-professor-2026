@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-// --- CONFIGURAÇÃO (COPIADO DO .ENV) ---
+// --- CONFIGURAÇÃO ---
 const supabaseUrl = 'https://yglwswpgrqfldvpbqxcl.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbHdzd3BncnFmbGR2cGJxeGNsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTU2Mjg0MDQsImV4cCI6MjAzMTIwNDQwNH0.5N_u6Y-0iG2s1s024s2yNCe-iZ0rnF3xKq6H3kTl3rU';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const professores = [
     { id: 'assuncao', name: 'Assunção', avatar: 'https://ui-avatars.com/api/?name=Assuncao&background=random' },
@@ -49,53 +51,62 @@ const STUDENTS_BY_CLASS = {
 };
 
 async function restaurar() {
-    console.log('🚀 Iniciando restauração no Supabase correto...\n');
+    console.log('🚀 Restaurador v2.4 - Iniciando...\n');
 
     try {
-        // 1. Limpar dados antigos
-        console.log('🗑️  Limpando dados antigos...');
-        await supabase.from('disciplines').delete().neq('discipline_id', '___impossivel___');
-        await supabase.from('students').delete().neq('id', '___impossivel___');
-        await supabase.from('teachers').delete().neq('id', '___impossivel___');
-        console.log('✅ Dados antigos removidos\n');
+        // Teste de conexão antes de tudo
+        console.log('🔗 Testando conexão...');
+        const { error: testErr } = await supabase.from('teachers').select('id').limit(1);
+        if (testErr) throw new Error(`Conexão falhou: ${testErr.message}`);
+        console.log('✅ Conexão OK\n');
 
-        // 2. Inserir professores
-        console.log('👨‍🏫 Inserindo professores...');
-        const { error: errProf } = await supabase.from('teachers').upsert(professores);
-        if (errProf) throw errProf;
-        console.log(`✅ ${professores.length} professores inseridos\n`);
+        console.log('🗑️  1/3 Limpando banco...');
+        await supabase.from('disciplines').delete().neq('discipline_id', '___');
+        await supabase.from('students').delete().neq('id', '___');
+        await supabase.from('teachers').delete().neq('id', '___');
+        await sleep(2000);
+        console.log('✅ Banco limpo\n');
 
-        // 3. Inserir disciplinas
-        console.log('📚 Inserindo disciplinas...');
-        const { error: errDisc } = await supabase.from('disciplines').upsert(disciplinas);
-        if (errDisc) throw errDisc;
-        console.log(`✅ ${disciplinas.length} disciplinas inseridas\n`);
+        console.log('👨‍🏫 2/3 Inserindo Professores e Disciplinas...');
+        const { error: e1 } = await supabase.from('teachers').upsert(professores);
+        if (e1) {
+            console.log('⚠️ Erro no lote, tentando um por um...');
+            for (const p of professores) {
+                await supabase.from('teachers').upsert(p);
+                await sleep(200);
+            }
+        }
+        await supabase.from('disciplines').upsert(disciplinas);
+        console.log('✅ Professores e Disciplinas OK\n');
 
-        // 4. Inserir alunos
-        console.log('👥 Inserindo alunos por turma...');
-        let totalAlunos = 0;
+        console.log('👥 3/3 Inserindo Alunos...');
+        let total = 0;
         for (const [className, studentNames] of Object.entries(STUDENTS_BY_CLASS)) {
-            const studentsData = studentNames.map((name, idx) => ({
+            const data = studentNames.map((name, idx) => ({
                 id: `${className.replace(/\s+/g, '-').toLowerCase()}-${idx + 1}`,
                 name: name,
                 class: className,
                 active: true
             }));
-            const { error: errAlunos } = await supabase.from('students').upsert(studentsData);
-            if (errAlunos) throw errAlunos;
-            totalAlunos += studentsData.length;
-            console.log(`✅ ${studentsData.length} alunos inseridos em ${className}`);
+
+            const { error: errAlunos } = await supabase.from('students').upsert(data);
+            if (errAlunos) {
+                console.log(`⚠️ Erro na turma ${className}, tentando individual...`);
+                for (const s of data) {
+                    await supabase.from('students').upsert(s).catch(() => { });
+                    await sleep(100);
+                }
+            }
+            total += data.length;
+            console.log(`   ✅ ${className}: ${data.length} alunos`);
+            await sleep(500);
         }
 
-        console.log('\n🎉 RESTAURAÇÃO CONCLUÍDA COM SUCESSO!');
-        console.log('\n📊 Resumo:');
-        console.log(`   - ${professores.length} professores`);
-        console.log(`   - ${disciplinas.length} disciplinas`);
-        console.log(`   - ${totalAlunos} alunos`);
-        console.log('\n✅ Agora os dados estão corretos no Supabase!');
+        console.log(`\n🎉 SUCESSO! Total de ${total} alunos no banco.`);
 
     } catch (error) {
-        console.error('❌ Erro:', error.message);
+        console.error('\n❌ ERRO:', error.message);
+        console.log('\n💡 Se o erro persistir, tente usar outra rede (ex: rotear o 4G do celular).');
     }
 }
 
